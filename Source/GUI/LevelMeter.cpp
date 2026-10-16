@@ -1,4 +1,5 @@
 #include "LevelMeter.h"
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <cmath>
 void LevelMeter::advance(float target,float seconds)
 {
