@@ -31,7 +31,7 @@ file(GLOB GUI_SOURCES CONFIGURE_DEPENDS Source/GUI/*.cpp)
 target_sources(SPVinylLab PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp ${DSP_SOURCES} ${GUI_SOURCES})
 target_include_directories(SPVinylLab PUBLIC Source)
 target_compile_definitions(SPVinylLab PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
-target_link_libraries(SPVinylLab PRIVATE juce::juce_audio_utils PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+target_link_libraries(SPVinylLab PRIVATE juce::juce_audio_basics juce::juce_audio_utils PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 # Export evaluated JUCE target paths, so CI never guesses a build artefact path.
 if(NOT TARGET SPVinylLab_VST3)
