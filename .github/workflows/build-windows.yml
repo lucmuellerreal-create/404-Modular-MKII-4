@@ -1,0 +1,76 @@
+name: Windows x64 VST3 Release
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Visual Studio 2022 / Release / x64
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout repository and submodules
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Check source files and Windows build tools
+        run: ./.github/scripts/Build-Windows.ps1 -Phase Preflight
+
+      - name: Test missing-binary and wrong-architecture rejection
+        run: |
+          ./Tests/Test-CiPackaging.ps1 -ScratchDirectory (Join-Path $env:RUNNER_TEMP 'SPVinylLab-packaging-tests') 2>&1 |
+            Tee-Object -FilePath ci-logs/package-guard-tests.log
+
+      - name: Configure CMake and verify pinned JUCE source
+        run: ./.github/scripts/Build-Windows.ps1 -Phase Configure
+
+      - name: Build existing VST3 and regression targets
+        run: ./.github/scripts/Build-Windows.ps1 -Phase Build
+
+      - name: Run processor and GUI regression tests
+        run: ./.github/scripts/Build-Windows.ps1 -Phase Test
+
+      - name: Validate x64 VST3 binary and stage the complete bundle
+        run: ./.github/scripts/Build-Windows.ps1 -Phase Package
+
+      - name: Upload complete VST3 bundle
+        # actions/upload-artifact v4.6.2; GitHub provides the downloadable ZIP.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: SP-Vinyl-Lab-Windows-x64-VST3
+          path: dist/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve logs and GUI captures even when the build fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: SP-Vinyl-Lab-Windows-x64-Diagnostics
+          path: |
+            ci-logs/
+            build/CMakeCache.txt
+            build/CMakeFiles/CMakeConfigureLog.yaml
+            build/CMakeFiles/CMakeError.log
+            build/CMakeFiles/CMakeOutput.log
+            build/Testing/Temporary/
+            build/ci/
+            build/GuiCaptures/
+            ${{ runner.temp }}/SPVinylLab-packaging-tests/**/test-output.log
+            ${{ runner.temp }}/SPVinylLab-packaging-tests/**/results.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
